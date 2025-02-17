@@ -1,0 +1,41 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LIFF App</title>
+  <!-- Load the LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+</head>
+<body>
+  <h1>Welcome to the LIFF App</h1>
+  <div id="profile"></div>
+  <script>
+    // Replace with your LIFF ID from the LINE Developers Console
+    const liffId = 'YOUR_LIFF_ID';
+
+    window.onload = () => {
+      liff.init({ liffId })
+        .then(() => {
+          // Check if the user is logged in
+          if (!liff.isLoggedIn()) {
+            liff.login();
+          } else {
+            // Once logged in, get the user's profile
+            liff.getProfile()
+              .then(profile => {
+                document.getElementById('profile').innerHTML = `
+                  <p><strong>User ID:</strong> ${profile.userId}</p>
+                  <p><strong>Display Name:</strong> ${profile.displayName}</p>
+                  <img src="${profile.pictureUrl}" alt="Profile Picture" width="100">
+                `;
+                console.log('Profile:', profile);
+              })
+              .catch(err => console.error('Error getting profile:', err));
+          }
+        })
+        .catch(err => console.error('LIFF Initialization failed', err));
+    }
+  </script>
+</body>
+</html>
