@@ -4,8 +4,8 @@ const line = require('@line/bot-sdk');
 const path = require('path');
 
 const config = {
-  channelAccessToken: 'YOUR_CHANNEL_ACCESS_TOKEN',  // Replace with your token
-  channelSecret: 'YOUR_CHANNEL_SECRET'              // Replace with your secret
+  channelAccessToken: '',  // Replace with your token
+  channelSecret: ''              // Replace with your secret
 };
 
 const app = express();
