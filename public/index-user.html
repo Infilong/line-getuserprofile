@@ -1,0 +1,249 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LIFF App with TON Wallet</title>
+  <!-- Load the LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+  <!-- Load the Mini DApp SDK (TonConnect) -->
+  <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
+  <style>
+    /* Basic styling */
+    body { font-family: sans-serif; padding: 1em; }
+    #wallet button { margin-top: 10px; padding: 8px 15px; cursor: pointer; }
+    #wallet p { margin-top: 10px; word-break: break-all; }
+    img { margin-top: 10px; }
+    #qrcode { margin-top: 15px; } /* Style for QR code if you add one */
+  </style>
+</head>
+<body>
+  <h1>Welcome to the LIFF App</h1>
+  <div id="profile">
+    <p>Loading LIFF profile...</p>
+  </div>
+
+  <hr>
+
+  <div id="wallet">
+    <h2>TON Wallet</h2>
+    <p id="walletStatus">Status: Not Connected</p>
+    <p id="walletAddress">Address: N/A</p>
+    <button id="walletButton">Connect TON Wallet</button>
+    <!-- Optional: Placeholder for QR Code -->
+    <div id="qrcode"></div>
+  </div>
+
+  <script>
+    // --- LIFF Setup ---
+    const liffId = ''; // Your LIFF ID
+
+    function initializeLiff() {
+      liff.init({ liffId })
+        .then(() => {
+          console.log("LIFF initialized");
+          if (!liff.isLoggedIn()) {
+            console.log("LIFF not logged in, logging in");
+            // Don't auto-login here if TON connect needs user interaction first
+            // liff.login();
+            document.getElementById('profile').innerHTML = `<p>Please log in to LINE.</p><button onclick="liff.login()">Log In</button>`;
+          } else {
+            console.log("LIFF logged in");
+            liff.getProfile()
+              .then(profile => {
+                document.getElementById('profile').innerHTML = `
+                  <p><strong>User ID:</strong> ${profile.userId}</p>
+                  <p><strong>Display Name:</strong> ${profile.displayName}</p>
+                  ${profile.pictureUrl ? `<img src="${profile.pictureUrl}" alt="Profile Picture" width="100">` : ''}
+                `;
+                console.log('Profile:', profile);
+              })
+              .catch(err => {
+                 console.error('Error getting profile:', err);
+                 document.getElementById('profile').innerHTML = `<p>Error loading profile.</p>`;
+              });
+          }
+        })
+        .catch(err => {
+            console.error('LIFF Initialization failed', err);
+            document.getElementById('profile').innerHTML = `<p>LIFF Initialization failed.</p>`;
+        });
+    }
+
+    // --- TON Connect Setup ---
+    let tonConnect = null; // Will be initialized once SDK is loaded
+    const walletStatusElement = document.getElementById('walletStatus');
+    const walletAddressElement = document.getElementById('walletAddress');
+    const walletButton = document.getElementById('walletButton');
+    const qrCodeElement = document.getElementById('qrcode'); // Get QR code element
+
+    // Function to update UI based on wallet connection status
+    function updateWalletUI(walletInfo) {
+        qrCodeElement.innerHTML = ''; // Clear QR code on status change
+        if (walletInfo) {
+            // Connected
+            const address = TonConnectSDK.toUserFriendlyAddress(walletInfo.account.address, walletInfo.account.chain === TonConnectSDK.CHAIN.TESTNET);
+            console.log('Wallet connected:', address, 'Chain:', walletInfo.account.chain);
+            walletStatusElement.textContent = 'Status: Connected';
+            walletAddressElement.textContent = `Address: ${address}`;
+            walletButton.textContent = 'Disconnect Wallet';
+            walletButton.onclick = disconnectTONWallet;
+            walletButton.disabled = false;
+        } else {
+            // Disconnected
+            console.log('Wallet disconnected.');
+            walletStatusElement.textContent = 'Status: Not Connected';
+            walletAddressElement.textContent = 'Address: N/A';
+            walletButton.textContent = 'Connect TON Wallet';
+            walletButton.onclick = connectTONWallet;
+            walletButton.disabled = false;
+        }
+    }
+
+    // Function to initiate wallet connection
+    async function connectTONWallet() {
+      if (!tonConnect) {
+        console.error("TonConnect SDK not initialized yet.");
+        alert("Error: TON Connect SDK not ready.");
+        return;
+      }
+      console.log("Initiating TON wallet connection...");
+      walletButton.disabled = true;
+      walletButton.textContent = 'Connecting...';
+      qrCodeElement.innerHTML = ''; // Clear previous QR
+
+      try {
+        // Method 1: Use connectWallet() - Tries to open modal or use bridge (Simpler if @tonconnect/ui or specific connectors are implicitly used/available)
+        // await tonConnect.connectWallet();
+        // If connectWallet doesn't work or you want explicit control via universal link:
+
+        // Method 2: Generate Universal Link and display it (Requires QR code library)
+        const walletsList = await tonConnect.getWallets(); // Optional: see available wallets
+        console.log("Available wallets:", walletsList);
+
+        // You might let the user choose a wallet or default to one like Tonkeeper
+        const connectionUrl = await tonConnect.connect({
+          universalLink: walletsList[0]?.universalLink || 'https://app.tonkeeper.com/connect', // Default or from list
+          bridgeUrl: 'https://bridge.tonapi.io/bridge' // Or use a specific bridge if needed
+        });
+
+        console.log("Connection URL generated:", connectionUrl);
+
+        // **IMPORTANT**: Display this URL to the user, typically as a QR code
+        // Using a simple alert for demonstration. Replace with QR code generation.
+        // alert(`Scan this QR code or open link in your wallet:\n${connectionUrl}`);
+        // Example using a QR code library (like qrcode.js or kjua) - you'd need to include one
+        // Basic text link as fallback:
+        qrCodeElement.innerHTML = `
+          <p>Scan QR or click link:</p>
+          <!-- Add QR code rendering here -->
+          <a href="${connectionUrl}" target="_blank" rel="noopener noreferrer">${connectionUrl}</a>
+        `;
+
+        walletButton.textContent = 'Waiting for Wallet...';
+        // Button remains disabled until onStatusChange updates it
+
+      } catch (error) {
+        console.error('Error initiating TON wallet connection:', error);
+        walletStatusElement.textContent = 'Status: Error initiating';
+        walletAddressElement.textContent = `Error: ${error.message || 'Unknown error'}`;
+        // Reset button
+        walletButton.textContent = 'Connect TON Wallet';
+        walletButton.onclick = connectTONWallet;
+        walletButton.disabled = false;
+      }
+    }
+
+    // Function to disconnect wallet
+    async function disconnectTONWallet() {
+      if (!tonConnect) return;
+      console.log("Disconnecting TON wallet...");
+      walletButton.disabled = true;
+      walletButton.textContent = 'Disconnecting...';
+      try {
+        await tonConnect.disconnect();
+        // UI update will be handled by onStatusChange listener
+        console.log("Disconnect request sent.");
+      } catch (error) {
+        console.error('Error disconnecting wallet:', error);
+        walletStatusElement.textContent = 'Status: Error disconnecting';
+        // Re-enable button maybe? Or rely on onStatusChange to reset state.
+        walletButton.disabled = false; // Re-enable on error
+        walletButton.textContent = 'Disconnect Wallet'; // Keep text as disconnect
+      }
+    }
+
+    // Function to initialize TON Connect SDK
+    function initializeTonConnect() {
+        console.log("Attempting to initialize TonConnect...");
+        if (window.TonConnectSDK) {
+            tonConnect = new window.TonConnectSDK.TonConnect({
+                // manifestUrl MUST point to a valid JSON manifest file served from your domain
+                // Ensure '/tonconnect-manifest.json' exists and is accessible
+                manifestUrl: '/tonconnect-manifest.json'
+                // Alternatively, provide the full URL:
+                // manifestUrl: 'https://your-app-domain.com/tonconnect-manifest.json'
+            });
+            console.log("TonConnect SDK Initialized");
+
+            // --- Subscribe to Wallet Status Changes ---
+            tonConnect.onStatusChange(updateWalletUI);
+
+            // --- Restore existing connection ---
+            tonConnect.restoreConnection().then((restored) => {
+                console.log(`Connection restored: ${restored}`);
+                // The onStatusChange listener will update the UI automatically if restored is true
+                if (!restored) {
+                    // If not restored, ensure UI is in disconnected state initially
+                    updateWalletUI(null);
+                }
+            }).catch(err => {
+                console.error("Failed to restore TonConnect connection:", err);
+                updateWalletUI(null); // Ensure disconnected state on restore error
+            });
+
+            // Initial button setup
+            walletButton.onclick = connectTONWallet;
+            walletButton.disabled = false; // Enable button now that SDK is ready
+
+        } else {
+            console.error("TonConnectSDK object not found on window. Retrying...");
+            // Optional: Add a retry mechanism if SDK loads slowly
+             setTimeout(initializeTonConnect, 500); // Retry after 500ms
+        }
+    }
+
+
+    // --- Main Execution ---
+    window.onload = () => {
+      console.log("Window loaded.");
+      initializeLiff(); // Start LIFF initialization
+
+      // Make sure TonConnectSDK script has loaded before initializing
+      // Use the existence of the object as the check
+      if (window.TonConnectSDK) {
+          initializeTonConnect();
+      } else {
+          // If the script tag has an onload handler, it might be cleaner
+          // For robustness, we check and retry in initializeTonConnect
+          console.log("TON Connect SDK not immediately available, will retry initialization...");
+          setTimeout(initializeTonConnect, 100); // Give it a slight delay just in case
+      }
+    };
+
+    // --- Ensure `tonconnect-manifest.json` exists ---
+    // Create a file named `tonconnect-manifest.json` in your `public` directory (or root)
+    // with content like this:
+    /*
+    {
+      "url": "https://your-app-domain.com", // Replace with your LIFF app's URL
+      "name": "My LIFF DApp",             // Your app's name
+      "iconUrl": "https://your-app-domain.com/icon.png", // URL to your app's icon
+      "termsOfUseUrl": "https://your-app-domain.com/terms", // Optional
+      "privacyPolicyUrl": "https://your-app-domain.com/privacy" // Optional
+    }
+    */
+
+  </script>
+</body>
+</html> 
