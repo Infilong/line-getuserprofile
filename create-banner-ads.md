@@ -1,17 +1,22 @@
-Create Banner Ads
+# Create Banner Ads
+
 Instructions on how to create banner ads by integrating your codes into OpenAD Protocol.
 
-Preparations
+## Preparations
+
 Make sure that you complete 4. Get Code before you start the following steps.
 
-Github Codes And Demo
+## Github Codes And Demo
+
 https://github.com/openad-protocol/openad-ad-demo
 
-Easy embedding
-Step #1. Load SDK
-Load the SDK in the body of html, the code is as follows:
+## Easy Embedding
 
-Copy
+### Step #1. Load SDK
+
+Load the SDK in the body of html:
+
+```html
 <body>
   <!--Your codes above-->
   <script
@@ -21,20 +26,24 @@ Copy
       src="https://protocol.openad.network/sdk/loader.js">
   </script>
 </body>
-We recommend to add your application version number or release timestamp after JS to obtain the latest JS SDK for your application. E.g.,
+```
 
+We recommend to add your application version number or release timestamp after JS to obtain the latest JS SDK for your application:
+
+```
 https://protocol.openad.network/sdk/loader.js?t=your-app-release-timestamp
-
 https://protocol.openad.network/sdk/loader.js?v=your-app-version
+```
 
-The following global vairables will be loaded with 'https://protocol.openad.network/sdk/loader.js'.
+The following global variables will be loaded with 'https://protocol.openad.network/sdk/loader.js':
 
-openADSdkLoader.hostURL , node api url to serve end user. e.g., https://bf2055756e.api.openad.network .
+- `openADSdkLoader.hostURL`: node api url to serve end user, e.g., https://bf2055756e.api.openad.network
 
 The script will pick OpenAD node for your end users, and load proper version of OpenAD SDK for you.
 
-Step #2. Add DOM placeholder for Ad banner
-Copy
+### Step #2. Add DOM Placeholder for Ad Banner
+
+```html
 <body>
   <!-- code before banner -->
   <div class="openADJsSDKBanner #your_style_class" 
@@ -43,23 +52,26 @@ Copy
   </div>
   <!-- code after banner -->
 </body>
-zoneld="1", 1 is a demo zoneld, please use your own "zoneId" publisherld="56", 56 is a demo publisherld, please use your own "publisherld" feel free to define your own banner style
+```
+
+> **Note**: 
+> - `zoneld="1"` is a demo zoneld, please use your own "zoneId"
+> - `publisherld="56"` is a demo publisherld, please use your own "publisherld"
+> - Feel free to define your own banner style
 
 OpenAD SDK will get ad banner for your end users and has it rendered in the DOM placeholder.
 
 In traditional web applications, you can see OpenAD banner been rendered.
 
-!!! OpenAD only support ONE DOM placeholder in one web page.
+> **Important**: OpenAD only support ONE DOM placeholder in one web page.
 
-Enjoy the OpenAD ecosystem !!!
-Step #3. Init OpenAD Resource
+### Step #3. Init OpenAD Resource
+
 In most SPA (single page application) web frameworks, DOM objects are rendered dynamically. Thus, the ad banner shall be init manually, the init js call will render ad banners to predefined DOM placeholder.
 
-Please follow the guideline to add the following js code.
+Please follow the guideline to add the following js code:
 
-Please organize the data according to the following code.
-
-Copy
+```javascript
 /* ... */
 
 // Create a params object
@@ -108,11 +120,11 @@ const adInfo = {
     eventId    : 0,  // Reserved Parameter
 };
 
-// Create a userInfo object. Regardless of whether the user is logged in to your application or not, the following parameters must be send to SDK.
+// Create a userInfo object
 const userInfo = {
-    // Please add reasonable user IDs for your end users.
-    // Otherwise, OpenAD statistics may be inaccurate
-    // which may affect your incentives
+   // Please add reasonable user IDs for your end users.
+   // Otherwise, OpenAD statistics may be inaccurate
+   // which may affect your incentives
    userId: string, // user Id, LINE LIFF please leave it blank, webApp if there is no data, please leave it blank
    firstName: string, // firstName or userId, LINE LIFF please leave it blank, webApp if there is no data, please leave it blank
    lastName: string, // lastName or userId, LINE LIFF please leave it blank, webApp if there is no data, please leave it blank
@@ -124,15 +136,18 @@ const userInfo = {
 /* ... */
 
 // init/load OpenAD resource manually
- window.openADJsSDK.bridge.init({ adParams, adInfo, userInfo });
-/* ... */
-Explicit Call Functions
-1. Load SDK
-.......
+window.openADJsSDK.bridge.init({ adParams, adInfo, userInfo });
+```
 
-2. Get Ad Info
-Copy
-// // Ad resource object structure, banner
+## Explicit Call Functions
+
+### 1. Load SDK
+...
+
+### 2. Get Ad Info
+
+```javascript
+// Ad resource object structure, banner
 // resource = {
 //    type         : 'banner',
 //    resource_url : string, // resource url
@@ -163,22 +178,29 @@ if ( res.code === 0 ) {
 }else{
    // We recommend not throwing an error
 }
-3. Log User View
-When the page loads the ad resources and users can see the ads, please execute the following SDK method.
+```
 
-Copy
+### 3. Log User View
+
+When the page loads the ad resources and users can see the ads, please execute the following SDK method:
+
+```javascript
 const res = await window.openADJsSDK.bridge.log(adInfo);
 if ( res.code === 0 ) {
    // Callback log info successful
 }else{
    // We recommend not throwing an error
 }
-4. Log User Click
+```
+
+### 4. Log User Click
+
 When users click on the ad, please execute the following SDK method:
 
-Copy
+```javascript
 window.openADJsSDK.bridge.click(adInfo);
+```
 
 SDK will open a new app by the above function;
 
-No Callback, if you want to do sth, you should use yourself functions or methods;
+> **Note**: No Callback, if you want to do sth, you should use yourself functions or methods;
